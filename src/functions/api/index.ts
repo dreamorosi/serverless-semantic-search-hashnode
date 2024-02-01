@@ -128,7 +128,7 @@ export const handler = makeIdempotent(
 										post: { id: postId },
 								  }
 								: // most fields are present only for post_updated & post_created events
-								  { post: postData }),
+								  postData),
 						}),
 					},
 				],

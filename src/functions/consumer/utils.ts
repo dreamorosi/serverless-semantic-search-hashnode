@@ -10,7 +10,7 @@ import { PineconeConnectionSecret } from "./types.js";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { type Document } from "langchain/document";
 
-const logger = new Logger({ logLevel: "INFO", sampleRateValue: 0.3 });
+const logger = new Logger({ logLevel: "INFO", sampleRateValue: 1 });
 
 // Retrieve the Pinecone connection secret from AWS Secrets Manager.
 const pineconeConnectionSecret = await getSecret<PineconeConnectionSecret>(
@@ -22,13 +22,16 @@ const pineconeConnectionSecret = await getSecret<PineconeConnectionSecret>(
 // Create an instance of the Pinecone client.
 const pinecone = new Pinecone({
 	apiKey: pineconeConnectionSecret?.apiKey || "",
-	environment: pineconeConnectionSecret?.environment || "",
 });
 const pineconeIndex = pinecone.index(pineconeConnectionSecret?.indexName || "");
 
 const getVectorChunkCount = async (postId: string): Promise<number> => {
 	try {
 		const firstChunk = await pineconeIndex.fetch([`${postId}#chunk1`]);
+
+		logger.debug("fetch vector chunks count response", {
+			firstChunk,
+		});
 
 		return firstChunk.records[0].metadata?.chunkCount as number;
 	} catch (error) {
@@ -42,12 +45,15 @@ const getVectorChunkCount = async (postId: string): Promise<number> => {
 
 const deleteVectorChunks = async (postId: string, chunkCount: number) => {
 	try {
-		await pineconeIndex.deleteMany(
+		const res = await pineconeIndex.deleteMany(
 			Array.from(
 				{ length: chunkCount },
 				(_, idx) => `${postId}#chunk${idx + 1}`,
 			),
 		);
+		logger.debug("delete vectors response", {
+			res,
+		});
 	} catch (error) {
 		logger.error("failed to delete vectors", {
 			error,
@@ -59,7 +65,11 @@ const deleteVectorChunks = async (postId: string, chunkCount: number) => {
 
 const putVectorChunks = async (vectors: PineconeRecord<RecordMetadata>[]) => {
 	try {
-		await pineconeIndex.upsert(vectors);
+		const res = await pineconeIndex.upsert(vectors);
+		logger.debug("upsert vectors response", {
+			res,
+			pineconeSecret: pineconeConnectionSecret,
+		});
 	} catch (error) {
 		logger.error("failed to upsert vectors", {
 			error,
@@ -90,6 +100,11 @@ const embedChunks = async (
 				input: chunk.pageContent,
 			});
 
+			logger.debug("embeddings created", {
+				chunk,
+				postId,
+			});
+
 			vectors.push({
 				id: `${postId}#chunk${idx + 1}`,
 				values: data[0].embedding,
@@ -111,7 +126,7 @@ const embedChunks = async (
 
 const splitter = RecursiveCharacterTextSplitter.fromLanguage("markdown", {
 	chunkSize: 500,
-	chunkOverlap: 0,
+	chunkOverlap: 50,
 });
 
 const createChunks = async (

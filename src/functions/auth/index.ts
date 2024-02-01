@@ -35,7 +35,7 @@ export const handler = async (event: CloudFrontRequestEvent) => {
 	});
 	const { headers, uri, body, method, querystring } = request;
 
-	if (uri === "/webhook") {
+	if (uri === "/") {
 		const eventBody = JSON.parse(
 			decoder.decode(
 				Buffer.from(body?.data || "", body?.encoding as BufferEncoding),

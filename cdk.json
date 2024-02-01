@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts src/ServerlessWebhookApp.ts",
+  "app": "npx ts-node --prefer-ts-exts src/HashnodeSemanticSearchApp.ts",
   "watch": {
     "include": [
       "**"

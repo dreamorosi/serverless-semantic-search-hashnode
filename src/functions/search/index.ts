@@ -10,7 +10,7 @@ import type { LambdaFunctionURLEventWithIAMAuthorizer } from "aws-lambda";
 import type { PineconeConnectionSecret } from "./types.js";
 import { Client, OperationResult, fetchExchange, gql } from "@urql/core";
 
-const logger = new Logger({ logLevel: "DEBUG" });
+const logger = new Logger({ logLevel: "INFO", sampleRateValue: 0.3 });
 
 // Retrieve the OpenAI API key from AWS Secrets Manager.
 const openAiSecret = await getSecret<string>("openai/api-key");
@@ -30,7 +30,6 @@ const pineconeConnectionSecret = await getSecret<PineconeConnectionSecret>(
 // Create an instance of the Pinecone client.
 const pinecone = new Pinecone({
 	apiKey: pineconeConnectionSecret?.apiKey || "",
-	environment: pineconeConnectionSecret?.environment || "",
 });
 const pineconeIndex = pinecone.index(pineconeConnectionSecret?.indexName || "");
 

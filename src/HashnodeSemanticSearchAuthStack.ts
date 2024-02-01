@@ -13,7 +13,7 @@ import { Secret } from "aws-cdk-lib/aws-secretsmanager";
 import { execSync } from "node:child_process";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
-export class ServerlessWebhookAuthStack extends Stack {
+export class HashnodeSemanticSearchAuthStack extends Stack {
 	public readonly distribution: Distribution;
 
 	constructor(scope: Construct, id: string, props?: StackProps) {
@@ -95,7 +95,7 @@ export class ServerlessWebhookAuthStack extends Stack {
 
 		// Store the version of the auth function that will be deployed to the edge
 		new StringParameter(this, "authFunctionVersionParam", {
-			parameterName: "ServerlessWebhookAuthFunctionVersion",
+			parameterName: "HashnodeSemanticSearchAuthFunctionVersion",
 			stringValue: `${authFunction.functionArn}`,
 		});
 	}

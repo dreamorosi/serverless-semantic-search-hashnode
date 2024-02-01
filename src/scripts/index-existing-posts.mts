@@ -3,8 +3,8 @@ import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
 import { createHmac, randomUUID } from "node:crypto";
 import { Client, fetchExchange, gql } from "@urql/core";
 
-const BLOG_HOST = "engineering.hashnode.com";
-const WEBHOOK_URL = "https://your-webhook-url.com/webhook";
+const BLOG_HOST = "engineering.hashnode.com"; // <-- Replace with your blog's host
+const WEBHOOK_URL = "https://your-webhook-url.com"; // <-- Replace with your webhook URL
 
 const secretsProvider = new SecretsProvider({
 	awsSdkV3Client: new SecretsManagerClient({
@@ -117,6 +117,8 @@ const getAllPostsFromApi = async () => {
 (async () => {
 	const posts = (await getAllPostsFromApi()) || [];
 
+	console.log(`Found ${posts.length} posts`);
+
 	const hashnodeSecret = await secretsProvider.get<string>(
 		"hashnode/webhook-secret",
 	);
@@ -153,4 +155,6 @@ const getAllPostsFromApi = async () => {
 			body: JSON.stringify(payload),
 		});
 	}
+
+	console.log("Successfully sent all posts to the webhook");
 })();

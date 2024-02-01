@@ -292,3 +292,4 @@ out.json
 payload.json
 
 .vscode/
+.DS_Store

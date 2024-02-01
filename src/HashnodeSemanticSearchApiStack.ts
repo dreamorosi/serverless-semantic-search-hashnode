@@ -3,9 +3,7 @@ import {
 	type StackProps,
 	RemovalPolicy,
 	CfnOutput,
-	Duration,
 	Fn,
-	Arn,
 } from "aws-cdk-lib";
 import { Construct } from "constructs";
 import {
@@ -25,24 +23,17 @@ import {
 } from "aws-cdk-lib/aws-s3";
 import { HttpOrigin } from "aws-cdk-lib/aws-cloudfront-origins";
 import { join } from "node:path";
-import {
-	Runtime,
-	FunctionUrlAuthType,
-	HttpMethod,
-} from "aws-cdk-lib/aws-lambda";
-import { NodejsFunction, OutputFormat } from "aws-cdk-lib/aws-lambda-nodejs";
+import { FunctionUrlAuthType, HttpMethod } from "aws-cdk-lib/aws-lambda";
+import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import { Version } from "aws-cdk-lib/aws-lambda";
 import { AttributeType, BillingMode, Table } from "aws-cdk-lib/aws-dynamodb";
 import { EventBus, Match, Rule } from "aws-cdk-lib/aws-events";
-import {
-	AwsCustomResource,
-	AwsCustomResourcePolicy,
-	PhysicalResourceId,
-} from "aws-cdk-lib/custom-resources";
 import { LambdaFunction } from "aws-cdk-lib/aws-events-targets";
 import { Secret } from "aws-cdk-lib/aws-secretsmanager";
+import { commonNodeJsFunctionProps } from "./constants";
+import { SSMParameterReader } from "./SSMParameterReader";
 
-export class ServerlessWebhookApiStack extends Stack {
+export class HashnodeSemanticSearchApiStack extends Stack {
 	public readonly distribution: Distribution;
 
 	constructor(scope: Construct, id: string, props?: StackProps) {
@@ -53,7 +44,7 @@ export class ServerlessWebhookApiStack extends Stack {
 			this,
 			"authAtEdgeFnVersionReader",
 			{
-				parameterName: "ServerlessWebhookAuthFunctionVersion",
+				parameterName: "HashnodeSemanticSearchAuthFunctionVersion",
 				region: "us-east-1",
 			},
 		);
@@ -92,14 +83,8 @@ export class ServerlessWebhookApiStack extends Stack {
 
 		// Create the webhook handler function
 		const webhookHandlerFn = new NodejsFunction(this, "webhookFn", {
-			runtime: Runtime.NODEJS_20_X,
-			memorySize: 256,
-			timeout: Duration.seconds(20),
+			...commonNodeJsFunctionProps,
 			entry: join(__dirname, "./functions/api/index.ts"),
-			handler: "handler",
-			bundling: {
-				format: OutputFormat.ESM,
-			},
 			environment: {
 				IDEMPOTENCY_TABLE_NAME: table.tableName,
 				EVENT_BUS_NAME: eventBus.eventBusName,
@@ -122,16 +107,8 @@ export class ServerlessWebhookApiStack extends Stack {
 
 		// Create the search handler function
 		const searchHandlerFn = new NodejsFunction(this, "searchFn", {
-			runtime: Runtime.NODEJS_20_X,
-			memorySize: 512,
-			timeout: Duration.seconds(20),
+			...commonNodeJsFunctionProps,
 			entry: join(__dirname, "./functions/search/index.ts"),
-			handler: "handler",
-			bundling: {
-				format: OutputFormat.ESM,
-				banner:
-					"import { createRequire } from 'module';const require = createRequire(import.meta.url);",
-			},
 			environment: {
 				OPENAI_API_KEY_NAME: openAiSecret.secretName,
 				PINECONE_CONNECTION_SECRET_NAME: pineconeSecret.secretName,
@@ -152,43 +129,41 @@ export class ServerlessWebhookApiStack extends Stack {
 		});
 
 		// Create the distribution for the webhook handler
+		const commonBehaviorProps = {
+			viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+			cachePolicy: CachePolicy.CACHING_DISABLED,
+			originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+			responseHeadersPolicy:
+				ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT_AND_SECURITY_HEADERS,
+			// Add the auth function as a Lambda@Edge function for the origin request
+			edgeLambdas: [
+				{
+					functionVersion: authFunctionVersion,
+					eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+					includeBody: true,
+				},
+			],
+		};
 		this.distribution = new Distribution(this, "webhookDistribution", {
 			comment: "Webhook Distribution",
 			defaultBehavior: {
+				...commonBehaviorProps,
 				origin: new HttpOrigin(
 					Fn.select(2, Fn.split("/", webhookHandlerFnUrl.url)),
 				),
-				viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-				cachePolicy: CachePolicy.CACHING_DISABLED,
-				originRequestPolicy: OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-				responseHeadersPolicy:
-					ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT_AND_SECURITY_HEADERS,
-				// Add the auth function as a Lambda@Edge function for the origin request
-				edgeLambdas: [
-					{
-						functionVersion: authFunctionVersion,
-						eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
-						includeBody: true,
-					},
-				],
 				allowedMethods: AllowedMethods.ALLOW_ALL,
 			},
 			additionalBehaviors: {
 				"/search": {
+					...commonBehaviorProps,
 					origin: new HttpOrigin(
 						Fn.select(2, Fn.split("/", searchHandlerFnFnUrl.url)),
 					),
-					viewerProtocolPolicy: ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-					cachePolicy: CachePolicy.CACHING_DISABLED,
-					originRequestPolicy:
-						OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-					responseHeadersPolicy:
-						ResponseHeadersPolicy.CORS_ALLOW_ALL_ORIGINS_WITH_PREFLIGHT_AND_SECURITY_HEADERS,
+					// cachePolicy: CachePolicy.CACHING_OPTIMIZED,
 					// Add the auth function as a Lambda@Edge function for the origin request
 					edgeLambdas: [
 						{
-							functionVersion: authFunctionVersion,
-							eventType: LambdaEdgeEventType.ORIGIN_REQUEST,
+							...commonBehaviorProps.edgeLambdas[0],
 							includeBody: false,
 						},
 					],
@@ -211,7 +186,7 @@ export class ServerlessWebhookApiStack extends Stack {
 
 		// Set the distribution domain name as an output for easy access
 		new CfnOutput(this, "distribution", {
-			value: `https://${this.distribution.distributionDomainName}/webhook`,
+			value: `https://${this.distribution.distributionDomainName}`,
 		});
 
 		// Create the consumer function for the EventBridge events
@@ -219,66 +194,36 @@ export class ServerlessWebhookApiStack extends Stack {
 			this,
 			"consumerPostCreatedFn",
 			{
-				runtime: Runtime.NODEJS_20_X,
+				...commonNodeJsFunctionProps,
 				memorySize: 512,
-				timeout: Duration.seconds(20),
 				entry: join(__dirname, "./functions/consumer/index.ts"),
 				handler: "handlerPostCreated",
-				bundling: {
-					format: OutputFormat.ESM,
-					minify: true,
-					esbuildArgs: {
-						"--tree-shaking": "true",
-					},
-				},
 			},
 		);
-		const consumerPostUpdatedFn = new NodejsFunction(
-			this,
-			"consumerPostUpdatedFn",
-			{
-				runtime: Runtime.NODEJS_20_X,
-				memorySize: 512,
-				timeout: Duration.seconds(20),
-				entry: join(__dirname, "./functions/consumer/index.ts"),
-				handler: "handlerPostUpdated",
-				bundling: {
-					format: OutputFormat.ESM,
-					minify: true,
-					esbuildArgs: {
-						"--tree-shaking": "true",
-					},
-				},
-			},
-		);
-		const consumerPostDeletedFn = new NodejsFunction(
-			this,
-			"consumerPostDeletedFn",
-			{
-				runtime: Runtime.NODEJS_20_X,
-				memorySize: 512,
-				timeout: Duration.seconds(20),
-				entry: join(__dirname, "./functions/consumer/index.ts"),
-				handler: "handlerPostDeleted",
-				bundling: {
-					format: OutputFormat.ESM,
-					minify: true,
-					esbuildArgs: {
-						"--tree-shaking": "true",
-					},
-				},
-			},
-		);
-
 		const postCreatedEventRule = new Rule(this, "postCreatedEventRule", {
+			eventBus,
 			eventPattern: {
 				source: Match.exactString("serverlessWebhookApi"),
 				detailType: Match.exactString("post_created"),
 			},
 		});
+		openAiSecret.grantRead(consumerPostCreatedFn);
+		pineconeSecret.grantRead(consumerPostCreatedFn);
 		postCreatedEventRule.addTarget(new LambdaFunction(consumerPostCreatedFn));
 
+		const consumerPostUpdatedFn = new NodejsFunction(
+			this,
+			"consumerPostUpdatedFn",
+			{
+				...commonNodeJsFunctionProps,
+				entry: join(__dirname, "./functions/consumer/index.ts"),
+				handler: "handlerPostUpdated",
+			},
+		);
+		openAiSecret.grantRead(consumerPostUpdatedFn);
+		pineconeSecret.grantRead(consumerPostUpdatedFn);
 		const postUpdatedEventRule = new Rule(this, "postUpdatedEventRule", {
+			eventBus,
 			eventPattern: {
 				source: Match.exactString("serverlessWebhookApi"),
 				detailType: Match.exactString("post_updated"),
@@ -286,56 +231,24 @@ export class ServerlessWebhookApiStack extends Stack {
 		});
 		postUpdatedEventRule.addTarget(new LambdaFunction(consumerPostUpdatedFn));
 
+		const consumerPostDeletedFn = new NodejsFunction(
+			this,
+			"consumerPostDeletedFn",
+			{
+				...commonNodeJsFunctionProps,
+				entry: join(__dirname, "./functions/consumer/index.ts"),
+				handler: "handlerPostDeleted",
+			},
+		);
+		openAiSecret.grantRead(consumerPostDeletedFn);
+		pineconeSecret.grantRead(consumerPostDeletedFn);
 		const postDeletedEventRule = new Rule(this, "postDeletedEventRule", {
+			eventBus,
 			eventPattern: {
 				source: Match.exactString("serverlessWebhookApi"),
 				detailType: Match.exactString("post_deleted"),
 			},
 		});
 		postDeletedEventRule.addTarget(new LambdaFunction(consumerPostDeletedFn));
-	}
-}
-
-interface SSMParameterReaderProps {
-	parameterName: string;
-	region: string;
-}
-
-function removeLeadingSlash(value: string): string {
-	return value.slice(0, 1) === "/" ? value.slice(1) : value;
-}
-
-export class SSMParameterReader extends AwsCustomResource {
-	constructor(scope: Construct, name: string, props: SSMParameterReaderProps) {
-		const { parameterName, region } = props;
-
-		super(scope, name, {
-			onUpdate: {
-				service: "SSM",
-				action: "getParameter",
-				parameters: {
-					Name: parameterName,
-				},
-				region,
-				physicalResourceId: PhysicalResourceId.of(Date.now().toString()),
-			},
-			policy: AwsCustomResourcePolicy.fromSdkCalls({
-				resources: [
-					Arn.format(
-						{
-							service: "ssm",
-							region: props.region,
-							resource: "parameter",
-							resourceName: removeLeadingSlash(parameterName),
-						},
-						Stack.of(scope),
-					),
-				],
-			}),
-		});
-	}
-
-	public getParameterValue(): string {
-		return this.getResponseField("Parameter.Value").toString();
 	}
 }
