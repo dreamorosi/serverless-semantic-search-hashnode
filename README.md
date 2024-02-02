@@ -1,8 +1,12 @@
-# Title
+# Semantic search for your Hashnode blog using Pinecone, OpenAI and AWS
 
-Intro
+With this Pinecone x Hashnode integration you can easily set up semantic search for your Hashnode blog posts and query them using a serverless REST API endpoint.
 
-architecture diagram goes here
+To implement this, we rely on [Pinecone](https://www.pinecone.io/), a managed vector database, the [OpenAI](https://openai.com/) API for embedding models, and [AWS serverless services](https://aws.amazon.com/serverless/) to host the solution in your own AWS account.
+
+This project builds on [HashBridge](https://github.com/dreamorosi/serverless-webhook-hashnode) which makes it easy to set up integrations between Hashnode and AWS serverless functions with AWS Lambda.
+
+You can read about the details of the implementation in the blog post [Pinecone x Hashnode: add semantic search to your Hashnode blog posts](https://serverlesstypescript.com//pinecone-x-hashnode-add-semantic-search-to-your-hashnode-blog-posts) on Hashnode.
 
 ## Prerequisites
 
