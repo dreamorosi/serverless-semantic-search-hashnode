@@ -8,16 +8,18 @@ This project builds on [HashBridge](https://github.com/dreamorosi/serverless-web
 
 You can read about the details of the implementation in the blog post [Pinecone x Hashnode: add semantic search to your Hashnode blog posts](https://serverlesstypescript.com//pinecone-x-hashnode-add-semantic-search-to-your-hashnode-blog-posts) on Hashnode.
 
+![Architecture diagram](./assets/architecture_diagram.png)
+
 ## Prerequisites
 
 - An [AWS account](https://repost.aws/knowledge-center/create-and-activate-aws-account)
 - Node.js v18.x or later
-- AWS CLI (*optional*)
-- A Hashnode blog
-- A Pinecone account (free tier is sufficient)
-- An OpenAI API key
+- AWS CLI (_optional_)
+- A [Hashnode](https://hashnode.com/) blog
+- A [Pinecone](https://www.pinecone.io/) account (free tier is sufficient)
+- An [OpenAI](https://openai.com/) API key
 
-### Create an Hashnode Webhook Secret
+### Create a Hashnode Webhook Secret
 
 First, you need to obtain the Hashnode webhook secret. To do this, go to your blog's settings page and click on the "Webhooks" tab. Then, click on the "Add New Webhook" button.
 
@@ -27,7 +29,7 @@ For now, you can leave the "Webhook URL" field empty. You will get the URL later
 
 ### Store the Hashnode Webhook Secret
 
-To avoid storing the Hashnode webhook secret in your source code, you can store it in AWS Secrets Manager. It's a good practice to handle secrets this way, as it also allows you to rotate the secret without having to redeploy your application.
+To avoid storing the Hashnode webhook secret in your source code, you can store it in [AWS Secrets Manager](https://aws.amazon.com/secrets-manager/). It's a good practice to handle secrets this way, as it also allows you to rotate the secret without having to redeploy your application.
 
 If you have the AWS CLI installed, you can store the webhook secret in AWS Secrets Manager by running the following command and replacing the secret value with your own:
 
@@ -39,9 +41,9 @@ If instead you prefer to store the secret in the AWS Secrets Manager console, yo
 
 ![AWS Secrets Manager](./assets/secret_manager.png)
 
-### Setup Pinecone
+### Set up the Pinecone vector database
 
-Pinecone is a managed vector search service that allows you to build a semantic search engine. You can sign up for a free account at [Pinecone](https://www.pinecone.io/). Once you have signed up, you will need to create an API key. You can do this by clicking on the "API Keys" tab in the Pinecone console and then clicking on the "Create API Key" button. Copy the API key and take note of it, as you will need it later.
+Pinecone is a managed vector database service that allows you to build a semantic search engine. You can sign up for a free account at [Pinecone](https://www.pinecone.io/). Once you have signed up, you will need to create an API key. You can do this by clicking on the "API Keys" tab in the Pinecone console and then clicking on the "Create API Key" button. Copy the API key and take note of it, as you will need it later.
 
 ![Pinecone API Key](./assets/pinecone_api_key.png)
 
@@ -102,7 +104,7 @@ Outputs:
 ServerlessWebhookApiStack.distribution = https://dkzum3j6x4pzr.cloudfront.net
 ```
 
-Copy the URL and go back to the Hashnode settings page. Paste the URL in the "URL" field and make sure the events of type `post_*` are selected, then click on the "Save" button.
+Copy the URL and go back to the Hashnode webhook settings page. Paste the URL in the "URL" field and make sure the events of type `post_*` are selected, then click on the "Save" button.
 
 Congratulations! You have successfully deployed the semantic search engine and connected it to your Hashnode blog 🎉!
 
@@ -117,7 +119,7 @@ const BLOG_HOST = "engineering.hashnode.com"; // <-- Update the hostname of your
 const WEBHOOK_URL = "https://your-webhook-url.com"; // <-- Update this with the distribution URL you copied earlier
 ```
 
-Then, you can run the script by running the following command:
+Then, you can run the script with the following command:
 
 ```bash
 npm run index_existing_posts
@@ -137,7 +139,7 @@ Successfully sent all posts to the webhook
 
 ## Testing the search engine
 
-With the search engine deployed and the blog posts indexed, you can now test the search engine by running a query. To do this, you can use any HTTP client, such as Postman or `httpie`. Here's an example of how you can run a query using `httpie
+With the search engine deployed and the blog posts indexed, you can now test the search engine by running a query. To do this, you can use any HTTP client, such as Postman or [`httpie`](https://httpie.io/). Here's an example of how you can run a query using `httpie`:
 
 ```bash
 http https://dkzum3j6x4pzr.cloudfront.net/search text=="what does hashnode use to schedule posts?"
@@ -147,44 +149,44 @@ Which returns a response similar to the following:
 
 ```json
 {
-    "matches": [
-        {
-            "post": {
-                "author": {
-                    "name": "Sandro Volpicella",
-                    "username": "SandroVolpicella"
-                },
-                "brief": "One essential feature of any blogging platform is the ability to schedule posts for publication. Hashnode introduced this functionality in June 2022.\nAt that time, the entire feature was based on a CRON job. This CRON job managed all various states a...",
-                "id": "65a68126b7de1c44080a3881",
-                "title": "Setting Up Post Schedules with EventBridge Scheduler & CDK"
-            },
-            "similarity_score": 0.754142821
+  "matches": [
+    {
+      "post": {
+        "author": {
+          "name": "Sandro Volpicella",
+          "username": "SandroVolpicella"
         },
-        {
-            "post": {
-                "author": {
-                    "name": "Sandro Volpicella",
-                    "username": "SandroVolpicella"
-                },
-                "brief": "This article gives you an overview of the architecture of Hashnode. The goal of this article is to give you a broad architecture of our involved services.\nOverall Architecture\n\nThis is our overall architecture. A request starts on the user's side. It...",
-                "id": "6524d6300881118bc31970bc",
-                "title": "Hashnode's Overall Architecture"
-            },
-            "similarity_score": 0.667605937
+        "brief": "One essential feature of any blogging platform is the ability to schedule posts for publication. Hashnode introduced this functionality in June 2022.\nAt that time, the entire feature was based on a CRON job. This CRON job managed all various states a...",
+        "id": "65a68126b7de1c44080a3881",
+        "title": "Setting Up Post Schedules with EventBridge Scheduler & CDK"
+      },
+      "similarity_score": 0.754142821
+    },
+    {
+      "post": {
+        "author": {
+          "name": "Sandro Volpicella",
+          "username": "SandroVolpicella"
         },
-        {
-            "post": {
-                "author": {
-                    "name": "Sandro Volpicella",
-                    "username": "SandroVolpicella"
-                },
-                "brief": "Did you ever want to know what happens once you publish a post on hashnode? This is your chance. \nThis is the first post of the series: Building an Event-Driven-Architecture at Hashnode\nThis first post gives you an idea of what Event-Driven-Architect...",
-                "id": "62f9e138be14cfbd5d7c7073",
-                "title": "Building an Event-Driven Architecture at Hashnode."
-            },
-            "similarity_score": 0.653201044
-        }
-    ]
+        "brief": "This article gives you an overview of the architecture of Hashnode. The goal of this article is to give you a broad architecture of our involved services.\nOverall Architecture\n\nThis is our overall architecture. A request starts on the user's side. It...",
+        "id": "6524d6300881118bc31970bc",
+        "title": "Hashnode's Overall Architecture"
+      },
+      "similarity_score": 0.667605937
+    },
+    {
+      "post": {
+        "author": {
+          "name": "Sandro Volpicella",
+          "username": "SandroVolpicella"
+        },
+        "brief": "Did you ever want to know what happens once you publish a post on hashnode? This is your chance. \nThis is the first post of the series: Building an Event-Driven-Architecture at Hashnode\nThis first post gives you an idea of what Event-Driven-Architect...",
+        "id": "62f9e138be14cfbd5d7c7073",
+        "title": "Building an Event-Driven Architecture at Hashnode."
+      },
+      "similarity_score": 0.653201044
+    }
+  ]
 }
 ```
 
@@ -200,44 +202,44 @@ which returns:
 
 ```json
 {
-    "matches": [
-        {
-            "post": {
-                "author": {
-                    "name": "Shad Mirza",
-                    "username": "iamshadmirza"
-                },
-                "brief": "How can you consistently deliver high-quality code that adheres to established coding guidelines and is free from errors?The solution lies in implementing tests and multiple checks for linting and type errors.\nThis may seem straightforward, but it re...",
-                "id": "64d492016f3feecb8702c3b4",
-                "title": "CI Checks: Ensuring Better Code Quality and Faster Deployment"
-            },
-            "similarity_score": 0.638337374
+  "matches": [
+    {
+      "post": {
+        "author": {
+          "name": "Shad Mirza",
+          "username": "iamshadmirza"
         },
-        {
-            "post": {
-                "author": {
-                    "name": "Lakshya Thakur",
-                    "username": "lakbychance"
-                },
-                "brief": "Welcome to the first article of the series - Debugging Days At Hashnode\nIn this series, we are going to talk about one of the important aspects of software engineering - Debugging and how it helps us solving series of weird bugs at Hashnode.\nSetting ...",
-                "id": "6267b4d448d65f908681b5b8",
-                "title": "Stuck In The Middleware"
-            },
-            "similarity_score": 0.569042385
+        "brief": "How can you consistently deliver high-quality code that adheres to established coding guidelines and is free from errors?The solution lies in implementing tests and multiple checks for linting and type errors.\nThis may seem straightforward, but it re...",
+        "id": "64d492016f3feecb8702c3b4",
+        "title": "CI Checks: Ensuring Better Code Quality and Faster Deployment"
+      },
+      "similarity_score": 0.638337374
+    },
+    {
+      "post": {
+        "author": {
+          "name": "Lakshya Thakur",
+          "username": "lakbychance"
         },
-        {
-            "post": {
-                "author": {
-                    "name": "Sandro Volpicella",
-                    "username": "SandroVolpicella"
-                },
-                "brief": "Did you ever want to know what happens once you publish a post on hashnode? This is your chance. \nThis is the first post of the series: Building an Event-Driven-Architecture at Hashnode\nThis first post gives you an idea of what Event-Driven-Architect...",
-                "id": "62f9e138be14cfbd5d7c7073",
-                "title": "Building an Event-Driven Architecture at Hashnode."
-            },
-            "similarity_score": 0.559377372
-        }
-    ]
+        "brief": "Welcome to the first article of the series - Debugging Days At Hashnode\nIn this series, we are going to talk about one of the important aspects of software engineering - Debugging and how it helps us solving series of weird bugs at Hashnode.\nSetting ...",
+        "id": "6267b4d448d65f908681b5b8",
+        "title": "Stuck In The Middleware"
+      },
+      "similarity_score": 0.569042385
+    },
+    {
+      "post": {
+        "author": {
+          "name": "Sandro Volpicella",
+          "username": "SandroVolpicella"
+        },
+        "brief": "Did you ever want to know what happens once you publish a post on hashnode? This is your chance. \nThis is the first post of the series: Building an Event-Driven-Architecture at Hashnode\nThis first post gives you an idea of what Event-Driven-Architect...",
+        "id": "62f9e138be14cfbd5d7c7073",
+        "title": "Building an Event-Driven Architecture at Hashnode."
+      },
+      "similarity_score": 0.559377372
+    }
+  ]
 }
 ```
 
