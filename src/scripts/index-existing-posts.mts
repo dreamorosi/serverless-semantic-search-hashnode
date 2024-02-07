@@ -4,7 +4,7 @@ import { createHmac, randomUUID } from "node:crypto";
 import { Client, fetchExchange, gql } from "@urql/core";
 
 const BLOG_HOST = "engineering.hashnode.com"; // <-- Replace with your blog's host
-const WEBHOOK_URL = "https://your-webhook-url.com"; // <-- Replace with your webhook URL
+const WEBHOOK_URL = "https://dkzum3j6x4pzr.cloudfront.net"; // <-- Replace with your webhook URL
 
 const secretsProvider = new SecretsProvider({
 	awsSdkV3Client: new SecretsManagerClient({

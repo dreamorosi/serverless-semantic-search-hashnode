@@ -7,83 +7,10 @@ import {
 	timingSafeEqual,
 } from "node:crypto";
 import type {
-	Headers,
-	HttpRequest as IHttpRequest,
-	QueryParameters,
 	CreateSignatureOptions,
 	ValidateSignatureOptions,
 	ValidateSignatureResult,
-  HttpRequestOptions,
 } from "./types.js";
-
-function cloneQuery(query: QueryParameters) {
-	return Object.keys(query).reduce((carry, paramName) => {
-		const param = query[paramName];
-		return {
-			// biome-ignore lint/performance/noAccumulatingSpread: this is required to clone the query
-      ...carry,
-			[paramName]: Array.isArray(param) ? [...param] : param,
-		};
-	}, {});
-}
-
-class HttpRequest implements IHttpRequest {
-	public readonly method: string;
-	public readonly protocol: string;
-	public readonly hostname: string;
-	public readonly port?: number;
-	public readonly path: string;
-	public query: QueryParameters;
-	public readonly headers: Headers;
-	public readonly username?: string;
-	public readonly password?: string;
-	public readonly fragment?: string;
-	public readonly body?: unknown;
-
-	constructor(options: HttpRequestOptions) {
-		this.method = options.method || "GET";
-		this.hostname = options.hostname || "localhost";
-		this.port = options.port;
-		this.query = options.query || {};
-		this.headers = options.headers || {};
-		this.body = options.body;
-		this.protocol = options.protocol
-			? options.protocol.slice(-1) !== ":"
-				? `${options.protocol}:`
-				: options.protocol
-			: "https:";
-		this.path = options.path
-			? options.path.charAt(0) !== "/"
-				? `/${options.path}`
-				: options.path
-			: "/";
-		this.username = options.username;
-		this.password = options.password;
-		this.fragment = options.fragment;
-	}
-
-	static isInstance(request: HttpRequest): request is HttpRequest {
-		if (!request) return false;
-		const req = request;
-		return (
-			"method" in req &&
-			"protocol" in req &&
-			"hostname" in req &&
-			"path" in req &&
-			typeof req.query === "object" &&
-			typeof req.headers === "object"
-		);
-	}
-
-	clone() {
-		const cloned = new HttpRequest({
-			...this,
-			headers: { ...this.headers },
-		});
-		if (cloned.query) cloned.query = cloneQuery(cloned.query);
-		return cloned;
-	}
-}
 
 class Sha256 {
 	private readonly hash: Hmac;
@@ -204,4 +131,4 @@ const compareSignatures = (signatureA: string, signatureB: string): boolean => {
 	}
 };
 
-export { HttpRequest, Sha256, validateSignature };
+export { Sha256, validateSignature };

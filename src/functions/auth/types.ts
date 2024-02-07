@@ -1,49 +1,3 @@
-type HttpMessage = {
-	headers: Headers;
-	body?: unknown;
-};
-
-type HttpRequestOptions = Partial<HttpMessage> &
-	Partial<URI> & {
-		method?: string;
-	};
-
-type QueryParameters = Record<string, string | Array<string> | null>;
-
-type Headers = Record<string, string>;
-
-type URI = {
-	protocol: string;
-	hostname: string;
-	port?: number;
-	path: string;
-	query?: QueryParameters;
-	username?: string;
-	password?: string;
-	fragment?: string;
-};
-
-export interface HttpRequest extends HttpMessage, URI {
-	method: string;
-}
-
-export declare class HttpRequest implements URI {
-	method: string;
-	protocol: string;
-	hostname: string;
-	port?: number;
-	path: string;
-	query: QueryParameters;
-	headers: Headers;
-	username?: string;
-	password?: string;
-	fragment?: string;
-	body?: unknown;
-	constructor(options: HttpRequestOptions);
-	static isInstance(request: unknown): request is HttpRequest;
-	clone(): HttpRequest;
-}
-
 type CreateSignatureOptions = {
 	/**
 	 * The timestamp of the signature.
@@ -83,9 +37,6 @@ type ValidateSignatureResult =
 	| { isValid: false; reason: string };
 
 export type {
-	QueryParameters,
-	Headers,
-	HttpRequestOptions,
 	ValidateSignatureResult,
 	CreateSignatureOptions,
 	ValidateSignatureOptions,
