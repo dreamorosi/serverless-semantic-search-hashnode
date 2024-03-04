@@ -33,7 +33,7 @@
     "aws-cdk-lib": "2.131.0",
     "constructs": "^10.3.0",
     "langchain": "^0.1.13",
-    "openai": "^4.27.0",
+    "openai": "^4.28.4",
     "source-map-support": "^0.5.21"
   }
 }
