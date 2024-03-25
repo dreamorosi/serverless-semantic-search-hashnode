@@ -24,8 +24,8 @@
   },
   "dependencies": {
     "@aws-lambda-powertools/idempotency": "^2.0.3",
-    "@aws-lambda-powertools/logger": "^2.0.0-alpha.2",
-    "@aws-lambda-powertools/parameters": "^2.0.0-alpha.2",
+    "@aws-lambda-powertools/logger": "^2.0.3",
+    "@aws-lambda-powertools/parameters": "^2.0.3",
     "@aws-sdk/client-eventbridge": "^3.540.0",
     "@aws-sdk/client-secrets-manager": "^3.540.0",
     "@pinecone-database/pinecone": "^2.1.0",
