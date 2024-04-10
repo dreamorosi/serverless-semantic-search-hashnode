@@ -29,7 +29,7 @@
     "@aws-sdk/client-eventbridge": "^3.549.0",
     "@aws-sdk/client-secrets-manager": "^3.549.0",
     "@pinecone-database/pinecone": "^2.2.0",
-    "@urql/core": "^4.2.3",
+    "@urql/core": "^5.0.0",
     "aws-cdk-lib": "2.136.0",
     "constructs": "^10.3.0",
     "langchain": "^0.1.13",
