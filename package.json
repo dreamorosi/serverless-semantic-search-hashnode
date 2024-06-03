@@ -13,7 +13,7 @@
     "@aws-sdk/protocol-http": "^3.374.0",
     "@aws-sdk/signature-v4": "^3.374.0",
     "@biomejs/biome": "^1.7.2",
-    "@types/aws-lambda": "^8.10.136",
+    "@types/aws-lambda": "^8.10.138",
     "@types/node": "20.11.30",
     "aws-cdk": "2.140.0",
     "aws-sdk": "^2.1595.0",
