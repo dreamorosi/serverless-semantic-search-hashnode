@@ -32,7 +32,7 @@
     "@urql/core": "^5.0.0",
     "aws-cdk-lib": "2.144.0",
     "constructs": "^10.3.0",
-    "langchain": "^0.2.4",
+    "langchain": "^0.2.8",
     "openai": "^4.40.1",
     "source-map-support": "^0.5.21"
   }
