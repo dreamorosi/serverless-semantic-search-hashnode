@@ -20,7 +20,7 @@
     "esbuild": "^0.20.2",
     "esbuild-register": "^3.6.0",
     "ts-node": "^10.9.2",
-    "typescript": "~5.5.4"
+    "typescript": "~5.8.2"
   },
   "dependencies": {
     "@aws-lambda-powertools/idempotency": "^2.0.3",
