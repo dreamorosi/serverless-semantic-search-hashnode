@@ -14,7 +14,7 @@
     "@aws-sdk/signature-v4": "^3.374.0",
     "@biomejs/biome": "^1.8.3",
     "@types/aws-lambda": "^8.10.138",
-    "@types/node": "22.10.5",
+    "@types/node": "22.13.8",
     "aws-cdk": "2.177.0",
     "aws-sdk": "^2.1692.0",
     "esbuild": "^0.20.2",
