@@ -1,38 +1,38 @@
-import { SecretsProvider } from "@aws-lambda-powertools/parameters/secrets";
-import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import { createHmac, randomUUID } from "node:crypto";
-import { Client, fetchExchange, gql } from "@urql/core";
+import { createHmac, randomUUID } from 'node:crypto';
+import { SecretsProvider } from '@aws-lambda-powertools/parameters/secrets';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { Client, fetchExchange, gql } from '@urql/core';
 
-const BLOG_HOST = "engineering.hashnode.com"; // <-- Replace with your blog's host
-const WEBHOOK_URL = "https://dkzum3j6x4pzr.cloudfront.net"; // <-- Replace with your webhook URL
+const BLOG_HOST = 'engineering.hashnode.com'; // <-- Replace with your blog's host
+const WEBHOOK_URL = 'https://dkzum3j6x4pzr.cloudfront.net'; // <-- Replace with your webhook URL
 
 const secretsProvider = new SecretsProvider({
-	awsSdkV3Client: new SecretsManagerClient({
-		region: "us-east-1",
-	}),
+  awsSdkV3Client: new SecretsManagerClient({
+    region: 'us-east-1',
+  }),
 });
 
 type CreateSignatureOptions = {
-	/**
-	 * The timestamp of the signature.
-	 */
-	timestamp: number;
-	/**
-	 * The payload to be signed.
-	 */
-	payload?: Record<string, unknown>;
-	/**
-	 * The secret of your webhook (`whsec_...`).
-	 */
-	secret: string;
+  /**
+   * The timestamp of the signature.
+   */
+  timestamp: number;
+  /**
+   * The payload to be signed.
+   */
+  payload?: Record<string, unknown>;
+  /**
+   * The secret of your webhook (`whsec_...`).
+   */
+  secret: string;
 };
 
 const createSignature = (options: CreateSignatureOptions): string => {
-	const { timestamp, payload, secret } = options;
-	const signedPayloadString = `${timestamp}.${
-		payload ? JSON.stringify(payload) : ""
-	}`;
-	return createHmac("sha256", secret).update(signedPayloadString).digest("hex");
+  const { timestamp, payload, secret } = options;
+  const signedPayloadString = `${timestamp}.${
+    payload ? JSON.stringify(payload) : ''
+  }`;
+  return createHmac('sha256', secret).update(signedPayloadString).digest('hex');
 };
 
 const query = gql`query Publication($host: String!, $after: String) {
@@ -57,104 +57,104 @@ const query = gql`query Publication($host: String!, $after: String) {
 
 // Create GraphQL client
 const gqlClient = new Client({
-	url: "https://gql.hashnode.com",
-	exchanges: [fetchExchange],
+  url: 'https://gql.hashnode.com',
+  exchanges: [fetchExchange],
 });
 
 const getAllPostsFromApi = async () => {
-	let hasNextPage = true;
-	let after = null;
-	const posts = [];
-	while (hasNextPage) {
-		const result = await gqlClient
-			.query(query, {
-				host: BLOG_HOST,
-				after,
-			})
-			.toPromise();
+  let hasNextPage = true;
+  let after = null;
+  const posts = [];
+  while (hasNextPage) {
+    const result = await gqlClient
+      .query(query, {
+        host: BLOG_HOST,
+        after,
+      })
+      .toPromise();
 
-		if (result.error) {
-			console.error(result.error);
-			return;
-		}
+    if (result.error) {
+      console.error(result.error);
+      return;
+    }
 
-		const {
-			publication: {
-				posts: {
-					edges,
-					pageInfo: { hasNextPage: _hasNextPage, endCursor },
-				},
-			},
-		} = result.data as {
-			publication: {
-				posts: {
-					edges: {
-						node: {
-							id: string;
-							title: string;
-							publication: {
-								id: string;
-							};
-						};
-					}[];
-					pageInfo: {
-						hasNextPage: boolean;
-						endCursor: string;
-					};
-				};
-			};
-		};
+    const {
+      publication: {
+        posts: {
+          edges,
+          pageInfo: { hasNextPage: _hasNextPage, endCursor },
+        },
+      },
+    } = result.data as {
+      publication: {
+        posts: {
+          edges: {
+            node: {
+              id: string;
+              title: string;
+              publication: {
+                id: string;
+              };
+            };
+          }[];
+          pageInfo: {
+            hasNextPage: boolean;
+            endCursor: string;
+          };
+        };
+      };
+    };
 
-		hasNextPage = _hasNextPage;
-		after = endCursor;
+    hasNextPage = _hasNextPage;
+    after = endCursor;
 
-		posts.push(...edges);
-	}
+    posts.push(...edges);
+  }
 
-	return posts;
+  return posts;
 };
 
 (async () => {
-	const posts = (await getAllPostsFromApi()) || [];
+  const posts = (await getAllPostsFromApi()) || [];
 
-	console.log(`Found ${posts.length} posts`);
+  console.log(`Found ${posts.length} posts`);
 
-	const hashnodeSecret = await secretsProvider.get<string>(
-		"hashnode/webhook-secret",
-	);
+  const hashnodeSecret = await secretsProvider.get<string>(
+    'hashnode/webhook-secret'
+  );
 
-	for (const post of posts) {
-		const timestamp = Date.now();
-		const payload = {
-			metadata: {
-				uuid: randomUUID(),
-			},
-			data: {
-				publication: {
-					id: post.node.publication.id,
-				},
-				post: {
-					id: post.node.id,
-				},
-				eventType: "post_created",
-			},
-		};
+  for (const post of posts) {
+    const timestamp = Date.now();
+    const payload = {
+      metadata: {
+        uuid: randomUUID(),
+      },
+      data: {
+        publication: {
+          id: post.node.publication.id,
+        },
+        post: {
+          id: post.node.id,
+        },
+        eventType: 'post_created',
+      },
+    };
 
-		const signature = createSignature({
-			timestamp,
-			payload,
-			secret: hashnodeSecret || "",
-		});
+    const signature = createSignature({
+      timestamp,
+      payload,
+      secret: hashnodeSecret || '',
+    });
 
-		await fetch(WEBHOOK_URL, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-				"x-hashnode-signature": `t=${timestamp},v1=${signature}`,
-			},
-			body: JSON.stringify(payload),
-		});
-	}
+    await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-hashnode-signature': `t=${timestamp},v1=${signature}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  }
 
-	console.log("Successfully sent all posts to the webhook");
+  console.log('Successfully sent all posts to the webhook');
 })();

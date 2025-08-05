@@ -1,14 +1,14 @@
-import { SecretsProvider } from "@aws-lambda-powertools/parameters/secrets";
-import { SecretsManagerClient } from "@aws-sdk/client-secrets-manager";
-import { createHmac, randomUUID } from "node:crypto";
-import { Client, fetchExchange, gql } from "@urql/core";
+import { createHmac, randomUUID } from 'node:crypto';
+import { SecretsProvider } from '@aws-lambda-powertools/parameters/secrets';
+import { SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
+import { Client, fetchExchange, gql } from '@urql/core';
 
-const BLOG_HOST = "engineering.hashnode.com";
-const WEBHOOK_URL = "https://dkzum3j6x4pzr.cloudfront.net"; // "https://your-webhook-url.com/webhook"; // <-- update this
+const BLOG_HOST = 'engineering.hashnode.com';
+const WEBHOOK_URL = 'https://dkzum3j6x4pzr.cloudfront.net'; // "https://your-webhook-url.com/webhook"; // <-- update this
 
 const secretsProvider = new SecretsProvider({
   awsSdkV3Client: new SecretsManagerClient({
-    region: "us-east-1",
+    region: 'us-east-1',
   }),
 });
 
@@ -30,9 +30,9 @@ type CreateSignatureOptions = {
 const createSignature = (options: CreateSignatureOptions): string => {
   const { timestamp, payload, secret } = options;
   const signedPayloadString = `${timestamp}.${
-    payload ? JSON.stringify(payload) : ""
+    payload ? JSON.stringify(payload) : ''
   }`;
-  return createHmac("sha256", secret).update(signedPayloadString).digest("hex");
+  return createHmac('sha256', secret).update(signedPayloadString).digest('hex');
 };
 
 const query = gql`
@@ -55,7 +55,7 @@ const query = gql`
 
 // Create GraphQL client
 const gqlClient = new Client({
-  url: "https://gql.hashnode.com",
+  url: 'https://gql.hashnode.com',
   exchanges: [fetchExchange],
 });
 
@@ -103,7 +103,7 @@ const getPostFromApi = async () => {
   }
 
   const hashnodeSecret = await secretsProvider.get<string>(
-    "hashnode/webhook-secret"
+    'hashnode/webhook-secret'
   );
 
   const timestamp = Date.now();
@@ -118,25 +118,25 @@ const getPostFromApi = async () => {
       post: {
         id: post.id,
       },
-      eventType: "post_created",
+      eventType: 'post_created',
     },
   };
 
   const signature = createSignature({
     timestamp,
     payload,
-    secret: hashnodeSecret || "",
+    secret: hashnodeSecret || '',
   });
 
   await fetch(WEBHOOK_URL, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
-      "x-hashnode-signature": `t=${timestamp},v1=${signature}`,
+      'Content-Type': 'application/json',
+      'x-hashnode-signature': `t=${timestamp},v1=${signature}`,
     },
     body: JSON.stringify(payload),
   });
 
-  console.log("Event sent!");
+  console.log('Event sent!');
   console.log(JSON.stringify(payload, null, 2));
 })();
